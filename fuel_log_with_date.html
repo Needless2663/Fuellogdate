@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Fuel Log to Excel</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- SheetJS for Excel export -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      max-width: 1000px;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    .subtitle {
+      text-align: center;
+      color: #555;
+      margin-bottom: 20px;
+    }
+    form {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    label {
+      font-size: 12px;
+      font-weight: 600;
+      display: block;
+      margin-bottom: 3px;
+    }
+    input {
+      width: 100%;
+      padding: 6px;
+      box-sizing: border-box;
+    }
+    .buttons {
+      margin: 15px 0;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    button {
+      padding: 8px 14px;
+      border: none;
+      cursor: pointer;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+    #addRowBtn {
+      background: #1976d2;
+      color: white;
+    }
+    #downloadBtn {
+      background: #2e7d32;
+      color: white;
+    }
+    #clearBtn {
+      background: #b71c1c;
+      color: white;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      font-size: 14px;
+    }
+    thead {
+      background: #f0f0f0;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 6px 8px;
+      text-align: left;
+    }
+    td[contenteditable="true"] {
+      background: #fffdf2;
+    }
+    .hint {
+      font-size: 12px;
+      color: #777;
+      margin-top: 5px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Fuel Log</h1>
+  <div class="subtitle">Enter entries below and export them to Excel</div>
+
+  <form id="entryForm">
+    <div>
+      <label for="date">Date</label>
+      <input type="date" id="date" />
+    </div>
+    <div>
+      <label for="time">Time</label>
+      <input type="time" id="time" />
+    </div>
+    <div>
+      <label for="pump">Pump No</label>
+      <input type="text" id="pump" placeholder="e.g. 1" />
+    </div>
+    <div>
+      <label for="truck">Truck Number</label>
+      <input type="text" id="truck" placeholder="e.g. TX 1234" />
+    </div>
+    <div>
+      <label for="gallons">Gallons</label>
+      <input type="number" id="gallons" step="0.01" placeholder="e.g. 120.5" />
+    </div>
+    <div>
+      <label for="amount">Total Amount</label>
+      <input type="number" id="amount" step="0.01" placeholder="e.g. 450.75" />
+    </div>
+  </form>
+
+  <div class="buttons">
+    <button id="addRowBtn">Add Row</button>
+    <button id="downloadBtn" type="button">Download Excel</button>
+    <button id="clearBtn" type="button">Clear All</button>
+  </div>
+
+  <div class="hint">
+    Tip: You can edit any cell directly in the table before downloading Excel.
+  </div>
+
+  <table id="dataTable">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Time</th>
+        <th>Pump No</th>
+        <th>Truck Number</th>
+        <th>Gallons</th>
+        <th>Total Amount</th>
+      </tr>
+    </thead>
+    <tbody id="dataBody">
+      <!-- Rows will appear here -->
+    </tbody>
+  </table>
+
+  <script>
+    const dateInput = document.getElementById("date");
+    const timeInput = document.getElementById("time");
+    const pumpInput = document.getElementById("pump");
+    const truckInput = document.getElementById("truck");
+    const gallonsInput = document.getElementById("gallons");
+    const amountInput = document.getElementById("amount");
+    const dataBody = document.getElementById("dataBody");
+    const addRowBtn = document.getElementById("addRowBtn");
+    const downloadBtn = document.getElementById("downloadBtn");
+    const clearBtn = document.getElementById("clearBtn");
+
+    function setDefaultDate() {
+      const now = new Date();
+      const yyyy = now.getFullYear();
+      const mm = String(now.getMonth() + 1).padStart(2, "0");
+      const dd = String(now.getDate()).padStart(2, "0");
+      dateInput.value = yyyy + "-" + mm + "-" + dd;
+    }
+
+    function setDefaultTime() {
+      const now = new Date();
+      const hh = String(now.getHours()).padStart(2, "0");
+      const mm = String(now.getMinutes()).padStart(2, "0");
+      timeInput.value = hh + ":" + mm;
+    }
+
+    setDefaultDate();
+    setDefaultTime();
+
+    addRowBtn.addEventListener("click", function (e) {
+      e.preventDefault();
+
+      let dateVal = dateInput.value;
+      let timeVal = timeInput.value;
+
+      if (!dateVal) {
+        setDefaultDate();
+        dateVal = dateInput.value;
+      }
+      if (!timeVal) {
+        setDefaultTime();
+        timeVal = timeInput.value;
+      }
+
+      const pumpVal = pumpInput.value.trim();
+      const truckVal = truckInput.value.trim();
+      const gallonsVal = gallonsInput.value.trim();
+      const amountVal = amountInput.value.trim();
+
+      if (!pumpVal || !truckVal || !gallonsVal || !amountVal) {
+        alert("Please fill Pump No, Truck Number, Gallons, and Total Amount.");
+        return;
+      }
+
+      const tr = document.createElement("tr");
+      const cells = [dateVal, timeVal, pumpVal, truckVal, gallonsVal, amountVal];
+
+      cells.forEach((val) => {
+        const td = document.createElement("td");
+        td.textContent = val;
+        td.contentEditable = "true";
+        tr.appendChild(td);
+      });
+
+      dataBody.appendChild(tr);
+
+      pumpInput.value = "";
+      truckInput.value = "";
+      gallonsInput.value = "";
+      amountInput.value = "";
+      pumpInput.focus();
+    });
+
+    downloadBtn.addEventListener("click", function () {
+      const rows = document.querySelectorAll("#dataBody tr");
+      if (rows.length === 0) {
+        alert("No data to export. Please add at least one row.");
+        return;
+      }
+
+      const ws_data = [];
+      const headers = ["Date", "Time", "Pump No", "Truck Number", "Gallons", "Total Amount"];
+      ws_data.push(headers);
+
+      rows.forEach((tr) => {
+        const row = [];
+        tr.querySelectorAll("td").forEach((td) => {
+          row.push(td.textContent.trim());
+        });
+        ws_data.push(row);
+      });
+
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(ws_data);
+      XLSX.utils.book_append_sheet(wb, ws, "Fuel Log");
+      XLSX.writeFile(wb, "fuel_log.xlsx");
+    });
+
+    clearBtn.addEventListener("click", function () {
+      if (confirm("Clear all rows from the table?")) {
+        dataBody.innerHTML = "";
+      }
+    });
+  </script>
+</body>
+</html>
